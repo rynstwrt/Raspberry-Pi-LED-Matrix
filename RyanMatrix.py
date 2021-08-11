@@ -2,8 +2,9 @@ import Modes as modes
 import board
 from flask import Flask, request
 from flask_cors import CORS, cross_origin
-
-
+from dotenv import load_dotenv
+load_dotenv()
+from os import getenv
 
 
 LED_PIN = board.D18
@@ -11,7 +12,7 @@ NUM_LEDS = 512
 BRIGHTNESS_PERCENT = 10
 NUM_ROWS = 16
 NUM_COLS = 32
-WEATHER_API_KEY = ""
+WEATHER_API_KEY = getenv("WEATHER_API_KEY")
 WEATHER_CITY = "Plano"
 WEATHER_STATE = "TX"
 WEATHER_COUNTRY = "US"
@@ -19,12 +20,12 @@ WEATHER_UNITS = "imperial"
 
 
 modes.init(LED_PIN, NUM_LEDS, BRIGHTNESS_PERCENT, NUM_ROWS, NUM_COLS, False)
+last_mode = None
 
 
 app = Flask(__name__)
 cors = CORS(app)
 app.config["CORS_HEADERS"] = "Content-Type"
-last_mode = None
 
 
 @app.route("/getmodes", methods = ["GET"])
@@ -128,4 +129,5 @@ def display_mode():
     return ""
 
 
-app.run()
+if __name__ == "__main__":
+    app.run()
