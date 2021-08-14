@@ -8,7 +8,9 @@ import pyaudio
 import numpy as np
 np.set_printoptions(suppress=True)
 from scipy import fft
-
+import colorsys
+from math import floor
+import datetime
 
 
 ################### VARIABLES ###################
@@ -28,41 +30,11 @@ AUDIO_BLOCK_SIZE = 1024 * 2
 pixels = neopixel.NeoPixel(LED_PIN, NUM_LEDS, brightness = BRIGHTNESS_PERCENT / 100, auto_write = False)
 
 
-MODES = """{
-            "off": {},
-            "rgb": {},
-            "theater chase rainbow": {},
-            "fill and unfill": { "color": true },
-            "sparkle": { "color": true },
-            "rainbow cycle": {},
-            "scrolling text": { "color": true, "textOrURL": true },
-            "rainbow scrolling text": { "textOrURL": true },
-            "load image url": { "textOrURL": true },
-            "progress pride flag": {},
-            "camera": {},
-            "equalizer": { "color": true },
-            "rainbow equalizer": {}
-        }"""
-
 ################### HELPER FUNCTIONS ###################
-def wheel(pos):
-    if pos < 0 or pos > 255:
-        r = g = b = 0
-    elif pos < 85:
-        r = int(pos * 3)
-        g = int(255 - pos * 3)
-        b = 0
-    elif pos < 170:
-        pos -= 85
-        r = int(255 - pos * 3)
-        g = 0
-        b = int(pos * 3)
-    else:
-        pos -= 170
-        r = 0
-        g = int(pos * 3)
-        b = int(255 - pos * 3)
-    return (r, g, b)
+def hsv_wheel(index):
+    index = index % 255
+    r, g, b = colorsys.hsv_to_rgb(index / 255, 1, 1)
+    return (floor(r * 255), floor(g * 255), floor(b * 255))
 
 
 def get_pixel_x(index):
@@ -87,6 +59,39 @@ async def display_image(image):
             pixels[index] = image.getpixel(coords)
 
     pixels.show()
+
+
+async def display_current_time_and_return_seconds(color):
+    now = datetime.datetime.now()
+
+    h = now.hour
+    m = now.minute
+    s = now.second
+
+    if h > 12:
+        h -= 12
+
+    if h == 0:
+        h = 12
+
+    if h < 10:
+        h = "0{}".format(h)
+
+    if m < 10:
+        m = "0{}".format(m)
+
+    text = "{}:{}".format(h, m)
+
+    image = Image.new("RGB", (NUM_COLS, NUM_ROWS), 0)
+    draw = ImageDraw.Draw(image)
+    font = ImageFont.truetype("/usr/share/fonts/roboto/Roboto-Regular.ttf", 12)
+    text_width, text_height = draw.textsize(text, font)
+
+    image.paste((0, 0, 0), [0, 0, NUM_COLS, NUM_ROWS])
+    draw.text((NUM_COLS / 2 - text_width / 2, NUM_ROWS / 2 - text_height / 2), text, color, font = font)
+
+    await display_image(image)
+    return s
 
 
 ################### MODE FUNCTIONS ###################
@@ -115,7 +120,7 @@ async def theater_chase_rainbow():
         for j in range(256):
             for q in range(3):
                 for i in range(0, NUM_LEDS, 3):
-                    pixels[i + q - 1] = wheel((i + j) % 255)
+                    pixels[i + q - 1] = hsv_wheel((i + j) % 255)
 
                 pixels.show()
                 await sleep(50 / 1000.0)
@@ -153,7 +158,7 @@ async def sparkle(color):
 async def rainbow_cycle():
     while True:
         for i in range(NUM_LEDS):
-            pixels[i] = wheel(i % 255)
+            pixels[i] = hsv_wheel(i)
             pixels.show()
             await sleep(.001)
 
@@ -196,14 +201,14 @@ async def rainbow_scrolling_text(text):
 
     while True:
         image.paste((0, 0, 0), [0, 0, NUM_COLS, NUM_ROWS])
-        draw.text((-iteration_count, 0), text, wheel(total_iterations % 255), font = font)
+        draw.text((-iteration_count, 0), text, hsv_wheel(total_iterations / 2), font = font)
 
         await create_task(display_image(image))
 
         iteration_count += 1
+        total_iterations += 1
         if iteration_count > text_width:
             iteration_count = -NUM_COLS
-            total_iterations += 10
 
 
 async def load_image_url(url):
@@ -238,7 +243,6 @@ async def camera():
 
 
 async def equalizer(color):
-
     audio = pyaudio.PyAudio()
 
     stream = audio.open(
@@ -292,9 +296,7 @@ async def equalizer(color):
         audio.terminate()
 
 
-
 async def rainbow_equalizer():
-
     audio = pyaudio.PyAudio()
 
     stream = audio.open(
@@ -338,7 +340,7 @@ async def rainbow_equalizer():
                 value = y_values[x]
 
                 for y in range(NUM_ROWS):
-                    pixels[get_pixel_index_at(x, NUM_ROWS - y - 1)] = wheel(((value - y) * 5) % 255) if y <= value else (0, 0, 0)
+                    pixels[get_pixel_index_at(x, NUM_ROWS - y - 1)] = hsv_wheel((value + y) / 2) if y <= value else (0, 0, 0)
 
             pixels.show()
             await sleep(.0001)
@@ -346,3 +348,12 @@ async def rainbow_equalizer():
         stream.stop_stream()
         stream.close()
         audio.terminate()
+
+
+async def clock(color):
+    seconds = await display_current_time_and_return_seconds(color)
+    await sleep(60 - seconds)
+
+    while True:
+        await display_current_time_and_return_seconds(color)
+        await sleep(60)
