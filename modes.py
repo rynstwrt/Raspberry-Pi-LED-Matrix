@@ -1,5 +1,4 @@
 from VideoCapture import VideoCapture
-from requests.models import HTTPBasicAuth
 import neopixel
 import board
 from asyncio import sleep, create_task
