@@ -32,7 +32,15 @@ modes_dict = {
     "camera": modes.camera,
     "equalizer": modes.equalizer,
     "rainbow equalizer": modes.rainbow_equalizer,
-    "clock": modes.clock
+    "clock": modes.clock,
+    "joke": modes.get_joke,
+    "blocks": modes.blocks,
+    "squiggle": modes.squiggle,
+    "hypnotize": modes.hypnotize,
+    "snake": modes.snake,
+    "face detection": modes.face_detection,
+    "object tracking": modes.object_tracking,
+    "object tracking 2": modes.object_tracking_2
 }
 
 
@@ -43,7 +51,12 @@ modes_arg_type_dict = {
     "rainbow scrolling text": ["text"],
     "load image url": ["text"],
     "equalizer": ["color"],
-    "clock": ["color"]
+    "clock": ["color"],
+    "joke": ["color"],
+    "squiggle": ["color"],
+    "hypnotize": ["color"],
+    "snake": ["color"],
+    "face detection": ["color"]
 }
 
 
